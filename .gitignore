@@ -1,0 +1,14 @@
+/target
+Cargo.lock
+fuzz/target
+fuzz/corpus
+fuzz/artifacts
+fuzz/Cargo.lock
+
+/validation/lzodiff/target
+/validation/lzodiff/Cargo.lock
+/target
+/fuzz/target
+/fuzz/corpus
+/fuzz/artifacts
+Cargo.lock

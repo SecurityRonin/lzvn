@@ -1,0 +1,34 @@
+[package]
+name = "lzvn-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Safe, dependency-free, no_std pure-Rust LZVN decompressor — bounds-checked and fuzz-hardened for reading untrusted Apple LZVN streams, length-tolerant for real-world decmpfs resource-fork blocks (macOS HFS+/APFS transparent compression)."
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/SecurityRonin/lzvn"
+homepage = "https://github.com/SecurityRonin/lzvn"
+documentation = "https://docs.rs/lzvn"
+authors = ["Albert Hui"]
+keywords = ["lzvn", "decmpfs", "decompression", "no-std", "forensics"]
+categories = ["compression", "no-std"]
+
+# The bare name `lzvn` is taken on crates.io; we publish as `lzvn-core` but keep
+# the import path `use lzvn::…` via the lib name (the fleet collision rule).
+[lib]
+name = "lzvn"
+path = "src/lib.rs"
+
+[features]
+default = ["alloc"]
+# Enables the allocating `decode` convenience; the core `decode_into` needs no
+# allocator and works in pure `no_std`.
+alloc = []
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+# Error variants are self-describing via `Error`'s docs/Display.
+missing_errors_doc = "allow"
