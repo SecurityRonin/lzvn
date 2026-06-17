@@ -32,7 +32,7 @@ LZVN is Apple's compression codec for HFS+/APFS **transparent compression** (`de
 ## Trust, but verify
 
 - **`#![forbid(unsafe_code)]`**, zero dependencies, `no_std` — bounds-checked, returns a typed [`Error`] on malformed input rather than panicking or reading out of bounds.
-- **Validated against an independent oracle.** Every real-data test fixture is a genuine LZVN block lifted from a macOS 26.5 system volume, with the expected output produced by Apple's own `COMPRESSION_LZVN` (`libcompression`) — not a synthetic round-trip.
+- **Validated against an independent oracle.** Committed fixtures are real LZVN streams produced by Apple's own `COMPRESSION_LZVN` encoder (`libcompression`), padded with trailing bytes to mirror a `decmpfs` block — and the decoder was additionally validated against **25 genuine macOS 26.5 system-file blocks** against the same Apple oracle (0/25 decoded by strict decoders, 25/25 here).
 - **Fuzz-hardened.** `cargo fuzz run decode` drives arbitrary input through the decoder; the invariant is "never panic."
 
 ## Scope
