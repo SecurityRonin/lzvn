@@ -1,5 +1,4 @@
 /target
-Cargo.lock
 fuzz/target
 fuzz/corpus
 fuzz/artifacts
@@ -11,4 +10,3 @@ fuzz/Cargo.lock
 /fuzz/target
 /fuzz/corpus
 /fuzz/artifacts
-Cargo.lock
