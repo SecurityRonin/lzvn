@@ -1,7 +1,9 @@
 //! Spec-derived behaviour + every error path. A forensic decoder must return a
 //! typed error on malformed input, never panic or read out of bounds.
 
-use lzvn::{decode, decode_into, Error};
+#[cfg(feature = "alloc")]
+use lzvn::decode;
+use lzvn::{decode_into, Error};
 
 #[test]
 fn small_literal_then_eos() {
@@ -115,6 +117,30 @@ fn error_display_is_nonempty() {
     }
 }
 
+#[test]
+fn medium_distance_opcode() {
+    // 3 literals "abc", then a medium-distance 3-byte opcode (0xa0..=0xbf).
+    // 0xa0: lit 0, match-length bits 0; b1=0x0c -> mlen 3, dist (0x0c>>2)=3;
+    // b2=0 -> high distance bits 0. Copies "abc" at distance 3 -> "abcabc".
+    let block = [0xe3, b'a', b'b', b'c', 0xa0, 0x0c, 0x00, 0x06];
+    let mut out = [0u8; 6];
+    let n = decode_into(&block, &mut out).unwrap();
+    assert_eq!(&out[..n], b"abcabc");
+}
+
+#[test]
+fn previous_distance_opcode() {
+    // 1 literal "a", a large-distance match (dist 1) that both repeats it and
+    // sets prev_distance, then the previous-distance opcode 0x46 (lit 1, mlen 3)
+    // which reuses that distance. 0x46: lit=1 -> literal 'b', mlen=3, dist=1
+    // -> "b" then "bbb". Full output: "aaaa" + "b" + "bbb" = "aaaabbbb".
+    let block = [0xe1, b'a', 0x07, 0x01, 0x00, 0x46, b'b', 0x06];
+    let mut out = [0u8; 8];
+    let n = decode_into(&block, &mut out).unwrap();
+    assert_eq!(&out[..n], b"aaaabbbb");
+}
+
+#[cfg(feature = "alloc")]
 #[test]
 fn decode_alloc_helper() {
     let block = [0xe5, b'h', b'e', b'l', b'l', b'o', 0x06];

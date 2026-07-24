@@ -43,6 +43,7 @@ fn decodes_low_compressibility() {
     check("near_random");
 }
 
+#[cfg(feature = "alloc")]
 #[test]
 fn decode_alloc_convenience() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/data");
