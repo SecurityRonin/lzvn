@@ -1,6 +1,6 @@
 [package]
 name = "lzvn-core"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.85"
 description = "Safe, dependency-free, no_std pure-Rust LZVN decompressor — bounds-checked and fuzz-hardened for reading untrusted Apple LZVN streams, length-tolerant for real-world decmpfs resource-fork blocks (macOS HFS+/APFS transparent compression)."

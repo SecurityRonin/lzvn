@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.1](https://github.com/SecurityRonin/lzvn/compare/lzvn-core-v0.1.0...lzvn-core-v0.1.1) - 2026-07-25
+
+### Documentation
+
+- reverse-write PRD + ADRs; mkdocs excludes governance docs (fleet standard)
+- use verbatim Apache-2.0 license text
+- MkDocs site + Pages deploy (fleet standard)
+
+### Fixed
+
+- *(vet)* declare own crates first-party so version bumps don't break supply-chain audit
+- *(ci)* unbreak main — gate alloc-only tests, cover all opcode arms, run fuzz on nightly
+
 ## 0.1.0 — unreleased
 
 - Initial release: length-tolerant pure-Rust Apple LZVN decoder.
