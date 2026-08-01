@@ -7,6 +7,8 @@
 //! genuine macOS 26.5 system-file blocks against the same Apple oracle, and that
 //! real-artifact corpus lives with the filesystem reader (hfsplus-forensic).
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use std::fs;
 use std::path::Path;
 

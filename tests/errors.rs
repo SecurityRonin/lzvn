@@ -1,6 +1,8 @@
 //! Spec-derived behaviour + every error path. A forensic decoder must return a
 //! typed error on malformed input, never panic or read out of bounds.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 #[cfg(feature = "alloc")]
 use lzvn::decode;
 use lzvn::{decode_into, Error};
