@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.2](https://github.com/SecurityRonin/lzvn/compare/lzvn-core-v0.1.1...lzvn-core-v0.1.2) - 2026-08-05
+
+### Documentation
+
+- *(terms)* state Apache-2.0, the licence this repo actually ships
+
+### Other
+
+- complete the canonical lints block
+
 ## [0.1.1](https://github.com/SecurityRonin/lzvn/compare/lzvn-core-v0.1.0...lzvn-core-v0.1.1) - 2026-07-25
 
 ### Documentation
