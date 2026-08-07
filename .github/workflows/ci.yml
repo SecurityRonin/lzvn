@@ -6,24 +6,51 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+# Only the repo-specific jobs at the bottom of this file read these. A called
+# workflow does not inherit caller-level `env:`; the reusable workflow declares
+# its own copy of exactly the same three.
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
   RUSTFLAGS: -Dwarnings
 
 jobs:
-  fmt:
-    name: Format
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-        with:
-          components: rustfmt
-      - run: cargo fmt --check
+  ci:
+    uses: SecurityRonin/fleet-ci/.github/workflows/rust-ci.yml@619094ad54edc586f5c2733358e00326b30790bd
+    with:
+      # The old `test` job ran on ubuntu-latest only. `true` would newly gate on
+      # macOS and Windows, which nothing here has ever been shown to pass.
+      os-matrix: false
+      # The old MSRV job ran `cargo test` on 1.85, not a bare build. The floor
+      # needs no input: the single member declares rust-version "1.85", so the
+      # workflow derives the same 1.85 the job was pinned to.
+      msrv-check: test
+      # `all-features` and `coverage-scope` stay at their defaults. This is a
+      # one-package workspace whose only feature is `alloc`, and `alloc` is in
+      # `default`, so `--workspace --all-features` compiles and measures exactly
+      # the same lines the old bare `cargo llvm-cov` did.
+      #
+      # The repo's own deny.toml, not the shared fleet config. Local is strictly
+      # STRICTER: `[bans] multiple-versions = "deny"` (shared: "warn") and
+      # `[advisories] ignore = []` (shared: 21 RUSTSEC ignores). Adopting the
+      # shared file would loosen this gate, which an adoption PR must not do.
+      deny-config-repo: ""
+      # cargo-deny-action defaults its `arguments` input to `--all-features`, so
+      # the old job checked the full-feature dependency graph. Carry that across.
+      deny-args: --all-features
 
-  clippy:
-    name: Clippy
+  # ---------------------------------------------------------------------------
+  # Repo-specific jobs, carried across from the pre-adoption ci.yml.
+  # ---------------------------------------------------------------------------
+
+  # The old clippy and test jobs each ran a second, `--no-default-features` leg:
+  # the lean `no_std` build without the allocating convenience. The shared
+  # workflow builds one feature set, so that leg lives here or nowhere.
+  no-default-features:
+    name: Clippy + Test (--no-default-features, no_std)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -31,78 +58,17 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
-      - run: cargo clippy --all-targets -- -D warnings
       # The lean `no_std` build (no `alloc` convenience) must stay warning-clean.
       - run: cargo clippy --all-targets --no-default-features -- -D warnings
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
-      - run: cargo test
       - run: cargo test --no-default-features
 
-  deny:
-    name: Cargo Deny
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
-
-  msrv:
-    name: MSRV (1.85)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: dtolnay/rust-toolchain@c56a35af9328d0bc581dc86c05e58f97f7c38a0e # 1.85
-      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
-      - run: cargo test
-      - run: cargo build --no-default-features
-
-  fuzz-check:
-    name: Fuzz (build check)
-    runs-on: ubuntu-latest
-    # The workflow-wide RUSTFLAGS=-Dwarnings must NOT leak into the nightly fuzz
-    # build (nightly warns more freely) or cargo-fuzz's own build.
-    env:
-      RUSTFLAGS: ""
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      # cargo-fuzz needs nightly (-Z sanitizer=address); install it here.
-      - uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-        with:
-          toolchain: nightly
-          components: rust-src
-      # Install without --locked: cargo-fuzz's pinned Cargo.lock holds an old
-      # rustix whose attributes current nightly rejects.
-      - run: cargo install cargo-fuzz
-      # `cargo +nightly` on the command line beats the repo `rust-toolchain.toml`
-      # pin (a *version* ref, 1.96.0) which otherwise wins over the action's
-      # `toolchain: nightly` *channel* input — leaving the build on stable, where
-      # cargo-fuzz's `-Z sanitizer=address` is rejected as a nightly-only option.
-      - run: cargo +nightly fuzz build
-
-  secrets:
-    name: Secret Scan (gitleaks)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 0
-      - name: Install gitleaks
-        # renovate: datasource=github-releases depName=gitleaks/gitleaks
-        run: |
-          VERSION=8.30.1
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
-            | tar xz -C /tmp gitleaks
-      - name: Run gitleaks
-        run: /tmp/gitleaks detect --source .
-
-  coverage:
-    name: Coverage (100% lines)
+  # The e2e half of the old `coverage` job. The shared workflow's coverage gate
+  # measures the whole suite; this second, independent gate asserts the
+  # integration suite ALONE reaches 100%. No input can express it, so it is
+  # copied verbatim — only the surrounding job scaffolding is new, and that is
+  # the same scaffolding the old coverage job used.
+  coverage-e2e:
+    name: Coverage (100% e2e, public API only)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -111,15 +77,6 @@ jobs:
           components: llvm-tools-preview
       - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
       - run: cargo install cargo-llvm-cov --locked
-      # 100% line coverage: any `DA:<line>,0` record fails the gate.
-      - name: Enforce 100% line coverage
-        run: |
-          cargo llvm-cov --lcov --output-path lcov.info
-          if grep -qE '^DA:[0-9]+,0$' lcov.info; then
-            echo "::error::uncovered lines:"; grep -nE '^(SF:|DA:[0-9]+,0$)' lcov.info
-            exit 1
-          fi
-          echo "100% line coverage ✓"
       # The whole public API is exercised through the integration tests (tests/),
       # so the e2e suite alone must also reach 100% — no line is reachable only
       # via white-box unit tests.
@@ -142,22 +99,3 @@ jobs:
       - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # v2.7.8
       - run: cargo install cargo-geiger --locked
       - run: cargo geiger 2>&1 || true
-
-  vet:
-    name: Cargo Vet (supply-chain)
-    runs-on: ubuntu-latest
-    # Complements `deny` (known-bad advisories/licenses) with the supply-chain-
-    # injection layer: every dependency version must be human-source-reviewed or
-    # covered by an imported aggregate audit set (Google/Mozilla/Bytecode-Alliance/
-    # Embark). Config in supply-chain/{config,audits,imports}.toml.
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-vet
-        uses: taiki-e/install-action@59012be0884e296ca2da49b530610e72c49039ad # v2.81.6
-        with:
-          tool: cargo-vet
-      - name: Fetch dependencies
-        run: cargo fetch
-      - name: Check supply chain
-        run: cargo vet --locked
