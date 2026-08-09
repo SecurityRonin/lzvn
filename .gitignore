@@ -1,4 +1,4 @@
-/target
+target/
 fuzz/target
 fuzz/corpus
 fuzz/artifacts
@@ -6,7 +6,7 @@ fuzz/Cargo.lock
 
 /validation/lzodiff/target
 /validation/lzodiff/Cargo.lock
-/target
+target/
 /fuzz/target
 /fuzz/corpus
 /fuzz/artifacts
