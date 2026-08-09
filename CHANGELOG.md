@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.3](https://github.com/SecurityRonin/lzvn/compare/lzvn-core-v0.1.2...lzvn-core-v0.1.3) - 2026-08-09
+
+### Fixed
+
+- *(gitignore)* unanchor the target rule so nested cargo projects are ignored
+
 ## [0.1.2](https://github.com/SecurityRonin/lzvn/compare/lzvn-core-v0.1.1...lzvn-core-v0.1.2) - 2026-08-05
 
 ### Documentation
